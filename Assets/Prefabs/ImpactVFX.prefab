@@ -4969,7 +4969,7 @@ ParticleSystem:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5508595335828872935}
   serializedVersion: 8
-  lengthInSec: 0.5
+  lengthInSec: 0.6
   simulationSpeed: 1
   stopAction: 0
   cullingMode: 0
@@ -5044,8 +5044,8 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.55
-      minScalar: 0.3
+      scalar: 0.7
+      minScalar: 0.4
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -5097,8 +5097,8 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.35
-      minScalar: 0.15
+      scalar: 0.45
+      minScalar: 0.2
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -5215,8 +5215,8 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.04
-      minScalar: 0.02
+      scalar: 0.11
+      minScalar: 0.07
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -5539,7 +5539,7 @@ ParticleSystem:
     gravityModifier:
       serializedVersion: 2
       minMaxState: 0
-      scalar: -0.12
+      scalar: -0.18
       minScalar: 0
       maxCurve:
         serializedVersion: 2
@@ -5679,7 +5679,7 @@ ParticleSystem:
     sphericalDirectionAmount: 0
     randomPositionAmount: 0
     radius:
-      value: 0.06
+      value: 0.08
       mode: 0
       spread: 0
       speed:
@@ -5908,7 +5908,7 @@ ParticleSystem:
       countCurve:
         serializedVersion: 2
         minMaxState: 0
-        scalar: 7
+        scalar: 8
         minScalar: 30
         maxCurve:
           serializedVersion: 2
@@ -5973,7 +5973,7 @@ ParticleSystem:
         m_Curve:
         - serializedVersion: 3
           time: 0
-          value: 0.5
+          value: 0.6
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -5982,7 +5982,7 @@ ParticleSystem:
           outWeight: 0
         - serializedVersion: 3
           time: 1
-          value: 0.8
+          value: 1.3
           inSlope: 0
           outSlope: 0
           tangentMode: 0
@@ -10802,7 +10802,7 @@ ParticleSystem:
       countCurve:
         serializedVersion: 2
         minMaxState: 0
-        scalar: 23
+        scalar: 17
         minScalar: 30
         maxCurve:
           serializedVersion: 2

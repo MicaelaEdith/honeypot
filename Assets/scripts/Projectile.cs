@@ -1,9 +1,15 @@
 using UnityEngine;
 
+[DisallowMultipleComponent]
 public class Projectile : MonoBehaviour
 {
     [SerializeField] private float lifeTime = 5f;
+    [SerializeField] private float impactVfxLifeTime = 2.5f;
+
     public GameObject impactVfx;
+    public float impactVfxScale = 1f;
+
+    private bool consumed;
 
     private void Start()
     {
@@ -12,20 +18,28 @@ public class Projectile : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        SpawnImpact(collision.contacts.Length > 0 ? collision.contacts[0].point : transform.position);
+        Vector3 point = collision.contactCount > 0 ? collision.contacts[0].point : transform.position;
+        Impact(point);
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        SpawnImpact(transform.position);
+        Impact(transform.position);
     }
 
-    private void SpawnImpact(Vector3 point)
+    private void Impact(Vector3 point)
     {
+        if (consumed)
+        {
+            return;
+        }
+        consumed = true;
+
         if (impactVfx != null)
         {
             GameObject vfx = Instantiate(impactVfx, point, Quaternion.identity);
-            Destroy(vfx, 2.5f);
+            vfx.transform.localScale *= impactVfxScale;
+            Destroy(vfx, impactVfxLifeTime);
         }
         Destroy(gameObject);
     }

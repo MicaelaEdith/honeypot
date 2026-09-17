@@ -1,98 +1,190 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[DisallowMultipleComponent]
+[RequireComponent(typeof(CharacterController))]
 public class TankController : MonoBehaviour
 {
-    [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float rotationSpeed = 90f;
+    [Header("Movimiento")]
+    [Tooltip("Velocidad de avance/retroceso en unidades por segundo.")]
+    [SerializeField] private float moveSpeed = 20f;
+    [Tooltip("Velocidad de giro del casco en grados por segundo.")]
+    [SerializeField] private float turnSpeed = 90f;
+    [Tooltip("Aceleracion de caida para mantener el tanque apoyado.")]
+    [SerializeField] private float gravity = 40f;
     [SerializeField] private bool invertForward = false;
-    [SerializeField] private bool invertTurning = false;
+    [SerializeField] private bool invertTurn = false;
 
-    private Vector3 front;
+    [Header("Frente del casco")]
+    [Tooltip("Dejar en cero para detectarlo solo a partir del cañon.")]
+    [SerializeField] private Vector3 bodyForwardLocal = Vector3.zero;
+
+    [Header("Collider")]
+    [SerializeField] private bool autoFitController = true;
+    [Range(0.5f, 1f)]
+    [SerializeField] private float fitWidthFactor = 0.8f;
+
+    private CharacterController controller;
+    private CannonController cannon;
+    private Vector3 forwardLocal;
+    private float verticalSpeed;
+
+    private void Awake()
+    {
+        controller = GetComponent<CharacterController>();
+        cannon = GetComponentInChildren<CannonController>();
+    }
 
     private void Start()
     {
-        front = DetectFront();
+        forwardLocal = ResolveForward();
+        if (autoFitController)
+        {
+            FitController();
+        }
     }
 
     private void Update()
     {
-        Keyboard keyboard = Keyboard.current;
-        bool keyW = keyboard != null && keyboard.wKey.isPressed;
-        bool keyS = keyboard != null && keyboard.sKey.isPressed;
-        bool keyA = keyboard != null && keyboard.aKey.isPressed;
-        bool keyD = keyboard != null && keyboard.dKey.isPressed;
-
-        float turnAmount = 0f;
-        if (keyA) turnAmount -= 1f;
-        if (keyD) turnAmount += 1f;
-        if (invertTurning) turnAmount = -turnAmount;
-        float yaw = turnAmount * rotationSpeed * Time.deltaTime;
-        transform.Rotate(Vector3.up, yaw, Space.World);
-        front = Quaternion.AngleAxis(yaw, Vector3.up) * front;
-
         float throttle = 0f;
-        if (keyW) throttle += 1f;
-        if (keyS) throttle -= 1f;
+        float turn = 0f;
+
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard != null)
+        {
+            if (keyboard.wKey.isPressed) throttle += 1f;
+            if (keyboard.sKey.isPressed) throttle -= 1f;
+            if (keyboard.aKey.isPressed) turn -= 1f;
+            if (keyboard.dKey.isPressed) turn += 1f;
+        }
+
         if (invertForward) throttle = -throttle;
+        if (invertTurn) turn = -turn;
 
-        transform.position += front * (throttle * moveSpeed * Time.deltaTime);
+        transform.Rotate(Vector3.up, turn * turnSpeed * Time.deltaTime, Space.World);
+
+        Vector3 forward = transform.TransformDirection(forwardLocal);
+        forward.y = 0f;
+        if (forward.sqrMagnitude > 0.0001f)
+        {
+            forward.Normalize();
+        }
+
+        if (controller.isGrounded && verticalSpeed < 0f)
+        {
+            verticalSpeed = -2f;
+        }
+        verticalSpeed -= gravity * Time.deltaTime;
+
+        Vector3 motion = forward * (throttle * moveSpeed) + Vector3.up * verticalSpeed;
+        controller.Move(motion * Time.deltaTime);
     }
 
-    private Vector3 DetectFront()
+    private Vector3 ResolveForward()
     {
-        Transform canon = FindCanon(transform);
-        if (canon != null)
+        if (bodyForwardLocal.sqrMagnitude > 0.0001f)
         {
-            Renderer renderer = canon.GetComponentInChildren<Renderer>();
-            if (renderer != null)
+            Vector3 manual = bodyForwardLocal;
+            manual.y = 0f;
+            if (manual.sqrMagnitude > 0.0001f)
             {
-                Vector3 extents = renderer.localBounds.extents;
-                Vector3 axis = extents.x >= extents.y && extents.x >= extents.z
-                    ? Vector3.right
-                    : (extents.y >= extents.z ? Vector3.up : Vector3.forward);
-                Vector3 dir = renderer.transform.TransformDirection(axis);
-                dir.y = 0f;
-                dir.Normalize();
-                if (Vector3.Dot(renderer.bounds.center - canon.position, dir) < 0f)
-                    dir = -dir;
-                if (dir.sqrMagnitude > 0.01f)
-                    return dir;
+                return manual.normalized;
             }
-            Vector3 canonFront = canon.forward;
-            canonFront.y = 0f;
-            if (canonFront.sqrMagnitude > 0.01f)
-                return canonFront.normalized;
         }
 
-        Vector3 fwd = transform.forward;
-        fwd.y = 0f;
-        if (fwd.sqrMagnitude > 0.01f)
-            return fwd.normalized;
-
-        Vector3 right = transform.right;
-        right.y = 0f;
-        return right.sqrMagnitude > 0.01f ? right.normalized : Vector3.forward;
-    }
-
-    private Transform FindCanon(Transform root)
-    {
-        foreach (Transform child in root)
+        if (cannon != null)
         {
-            if (IsCanonName(child.name))
-                return child;
-            Transform found = FindCanon(child);
-            if (found != null)
-                return found;
+            Vector3 barrel = cannon.BarrelDirection;
+            barrel.y = 0f;
+            if (barrel.sqrMagnitude > 0.0001f)
+            {
+                Vector3 local = transform.InverseTransformDirection(barrel.normalized);
+                local.y = 0f;
+                if (local.sqrMagnitude > 0.0001f)
+                {
+                    return local.normalized;
+                }
+            }
         }
-        return null;
+
+        return Vector3.forward;
     }
 
-    private bool IsCanonName(string name)
+    private void FitController()
     {
-        string n = name.ToLowerInvariant();
-        return n.Contains("canion") || n.Contains("cañon") || n.Contains("cañón")
-            || n.Contains("canon") || n.Contains("cannon") || n.Contains("turret")
-            || n.Contains("torreta") || n.Contains("gun") || n.Contains("barrel");
+        if (!TryGetBodyBounds(out Bounds world))
+        {
+            return;
+        }
+
+        Vector3 a = transform.InverseTransformPoint(world.min);
+        Vector3 b = transform.InverseTransformPoint(world.max);
+        Vector3 min = Vector3.Min(a, b);
+        Vector3 max = Vector3.Max(a, b);
+        Vector3 size = max - min;
+
+        float radius = Mathf.Min(size.x, size.z) * 0.5f * fitWidthFactor;
+        radius = Mathf.Max(radius, 0.1f);
+        float height = Mathf.Max(size.y, radius * 2.05f);
+
+        controller.radius = radius;
+        controller.height = height;
+        controller.center = new Vector3(
+            (min.x + max.x) * 0.5f,
+            min.y + height * 0.5f,
+            (min.z + max.z) * 0.5f);
+        controller.stepOffset = height * 0.1f;
+        controller.skinWidth = radius * 0.1f;
+    }
+
+    private bool TryGetBodyBounds(out Bounds bounds)
+    {
+        bounds = default;
+        bool has = false;
+
+        Transform excluded = cannon != null ? cannon.CannonRoot : null;
+        if (excluded == transform)
+        {
+            excluded = null;
+        }
+
+        foreach (Renderer renderer in GetComponentsInChildren<Renderer>())
+        {
+            if (IsInside(renderer.transform, excluded))
+            {
+                continue;
+            }
+
+            if (!has)
+            {
+                bounds = renderer.bounds;
+                has = true;
+            }
+            else
+            {
+                bounds.Encapsulate(renderer.bounds);
+            }
+        }
+
+        return has;
+    }
+
+    private static bool IsInside(Transform candidate, Transform ancestor)
+    {
+        if (ancestor == null)
+        {
+            return false;
+        }
+
+        Transform current = candidate;
+        while (current != null)
+        {
+            if (current == ancestor)
+            {
+                return true;
+            }
+            current = current.parent;
+        }
+        return false;
     }
 }
