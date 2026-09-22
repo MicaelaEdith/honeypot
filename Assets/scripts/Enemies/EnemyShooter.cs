@@ -21,8 +21,7 @@ public class EnemyShooter : EnemyTemplate
             return;
         }
 
-        Vector3 forward = transform.forward;
-        forward.y = 0f;
+        Vector3 forward = ForwardFlat;
         if (forward.sqrMagnitude < 0.0001f)
         {
             forward = Vector3.forward;

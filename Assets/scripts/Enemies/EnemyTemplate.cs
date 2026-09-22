@@ -21,6 +21,8 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
     [Tooltip("Si esta activo, rota el cuerpo hacia el player (updateRotation del agente desactivada).")]
     [SerializeField] private bool rotateTowardPlayer = true;
     [SerializeField] private float rotateSpeed = 120f;
+    [Tooltip("Eje local del modelo que apunta hacia el morro (forward visual de la nave).\nDefault (0,0,1). Si el modelo tiene la nariz 'parada' (tilt -90 en X), usa (0,1,0).")]
+    [SerializeField] private Vector3 modelForward = Vector3.forward;
 
     [Header("Choque")]
     [Tooltip("Si esta activo, daña al player por contacto mientras esta en rango de ataque.")]
@@ -36,6 +38,25 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
     protected EnemyState currentState { get; private set; } = EnemyState.Idle;
     protected Transform player { get; private set; }
     protected bool IsLured => lurePosition.HasValue;
+
+    /// <summary>
+    /// Direccion horizontal hacia la que apunta el morro de la nave (modelForward
+    /// proyectado sobre el plano XZ). Si el eje no da, cae a transform.forward.
+    /// </summary>
+    protected Vector3 ForwardFlat
+    {
+        get
+        {
+            Vector3 forward = transform.TransformDirection(modelForward);
+            forward.y = 0f;
+            if (forward.sqrMagnitude < 0.0001f)
+            {
+                forward = transform.forward;
+                forward.y = 0f;
+            }
+            return forward.sqrMagnitude < 0.0001f ? Vector3.forward : forward.normalized;
+        }
+    }
 
     private static TankController cachedPlayer;
 
@@ -54,6 +75,7 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
         agent.baseOffset = hoverHeight;
         player = FindPlayer();
         currentHealth = maxHealth;
+        FitColliderToMesh();
     }
 
     protected virtual void Update()
@@ -283,9 +305,22 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
         {
             return;
         }
+        direction.Normalize();
 
-        Quaternion goal = Quaternion.LookRotation(direction.normalized, Vector3.up);
-        transform.rotation = Quaternion.RotateTowards(transform.rotation, goal, rotateSpeed * Time.deltaTime);
+        Vector3 current = ForwardFlat;
+        if (current.sqrMagnitude < 0.0001f)
+        {
+            return;
+        }
+        current.Normalize();
+
+        float angle = Vector3.SignedAngle(current, direction, Vector3.up);
+        float step = Mathf.Clamp(angle, -rotateSpeed * Time.deltaTime, rotateSpeed * Time.deltaTime);
+        if (Mathf.Abs(step) < 0.0001f)
+        {
+            return;
+        }
+        transform.Rotate(Vector3.up, step, Space.World);
     }
 
     private Vector3 TargetPosition()
@@ -302,6 +337,49 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
         foreach (Collider collider in GetComponentsInChildren<Collider>())
         {
             collider.enabled = enabled;
+        }
+    }
+
+    /// <summary>
+    /// Redimensiona el collider del enemigo para que cubra el mesh visible.
+    /// Evita que las balas atraviesen el casco cuando el collider quedo
+    /// chico por escalas del modelo/prefab.
+    /// </summary>
+    private void FitColliderToMesh()
+    {
+        Renderer[] renderers = GetComponentsInChildren<Renderer>();
+        if (renderers.Length == 0)
+        {
+            return;
+        }
+
+        Bounds worldBounds = renderers[0].bounds;
+        for (int i = 1; i < renderers.Length; i++)
+        {
+            worldBounds.Encapsulate(renderers[i].bounds);
+        }
+
+        Collider collider = GetComponent<Collider>();
+        if (collider == null)
+        {
+            return;
+        }
+
+        Vector3 localCenter = transform.InverseTransformPoint(worldBounds.center);
+        Vector3 localSize = new Vector3(
+            worldBounds.size.x / Mathf.Max(transform.lossyScale.x, 0.0001f),
+            worldBounds.size.y / Mathf.Max(transform.lossyScale.y, 0.0001f),
+            worldBounds.size.z / Mathf.Max(transform.lossyScale.z, 0.0001f));
+
+        if (collider is BoxCollider box)
+        {
+            box.center = localCenter;
+            box.size = localSize;
+        }
+        else if (collider is SphereCollider sphere)
+        {
+            sphere.center = localCenter;
+            sphere.radius = Mathf.Max(localSize.x, Mathf.Max(localSize.y, localSize.z)) * 0.5f;
         }
     }
 

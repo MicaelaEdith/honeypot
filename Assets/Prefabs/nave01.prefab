@@ -151,7 +151,7 @@ MonoBehaviour:
   attackRange: 30
   damageAmount: 12
   attackCooldown: 1.2
-  hoverHeight: 15
+  hoverHeight: 0
   rotateTowardPlayer: 1
   rotateSpeed: 120
   contactDamage: 0

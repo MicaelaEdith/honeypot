@@ -31,7 +31,7 @@ public class EnemyTankShip : EnemyTemplate
         }
         direction.Normalize();
 
-        if (Vector3.Angle(transform.forward, direction) > aimTolerance)
+        if (Vector3.Angle(ForwardFlat, direction) > aimTolerance)
         {
             return;
         }
