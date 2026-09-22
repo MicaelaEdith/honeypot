@@ -3,7 +3,7 @@ using UnityEngine.InputSystem;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(CharacterController))]
-public class TankController : MonoBehaviour
+public class TankController : MonoBehaviour, IDamagable, IHealth
 {
     [Header("Movimiento")]
     [Tooltip("Velocidad de avance/retroceso en unidades por segundo.")]
@@ -24,10 +24,19 @@ public class TankController : MonoBehaviour
     [Range(0.5f, 1f)]
     [SerializeField] private float fitWidthFactor = 0.8f;
 
+    [Header("Vida")]
+    [Tooltip("Vida maxima del tanque.")]
+    [SerializeField] private float maxHealth = 100f;
+
     private CharacterController controller;
     private CannonController cannon;
     private Vector3 forwardLocal;
     private float verticalSpeed;
+    private float currentHealth;
+    private Vector3 spawnPoint;
+
+    public float CurrentHealth => currentHealth;
+    public float MaxHealth => maxHealth;
 
     private void Awake()
     {
@@ -42,6 +51,41 @@ public class TankController : MonoBehaviour
         {
             FitController();
         }
+        currentHealth = maxHealth;
+        spawnPoint = transform.position;
+    }
+
+    public void TakeDamage(float damage)
+    {
+        if (currentHealth <= 0f)
+        {
+            return;
+        }
+
+        currentHealth -= Mathf.Max(0f, damage);
+        Debug.Log($"[TankController] El tanque recibio {damage} de daño. Vida: {currentHealth}", this);
+
+        if (currentHealth <= 0f)
+        {
+            Respawn();
+        }
+    }
+
+    public void Healing(int amount)
+    {
+        if (amount < 0)
+        {
+            return;
+        }
+        currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
+    }
+
+    private void Respawn()
+    {
+        Debug.Log("[TankController] El tanque fue destruido. Respawneando...", this);
+        currentHealth = maxHealth;
+        transform.SetPositionAndRotation(spawnPoint, Quaternion.identity);
+        verticalSpeed = 0f;
     }
 
     private void Update()
