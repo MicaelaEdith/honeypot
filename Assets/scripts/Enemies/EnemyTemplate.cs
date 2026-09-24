@@ -14,6 +14,8 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
     [Tooltip("Daño por golpe/proyectil.")]
     [SerializeField] protected float damageAmount = 12f;
     [SerializeField] private float attackCooldown = 1.2f;
+    [Tooltip("Escala (diametro) de los proyectiles enemigos en unidades de mundo.")]
+    [SerializeField] private float projectileScale = 1.5f;
     [Tooltip("Altura de vuelo sobre la navegacion. 0 = pegado al piso.")]
     [SerializeField] private float hoverHeight = 15f;
 
@@ -41,21 +43,50 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
 
     /// <summary>
     /// Direccion horizontal hacia la que apunta el morro de la nave (modelForward
-    /// proyectado sobre el plano XZ). Si el eje no da, cae a transform.forward.
+    /// proyectado sobre el plano XZ). Nunca devuelve un vector de mundo constante:
+    /// si el eje configurado colapsa a vertical prueba ejes locales alternativos,
+    /// luego la velocidad real del agente y, si nada da, Vector3.zero (no girar).
+    /// Asi un modelForward mal configurado jamas produce giro infinito.
     /// </summary>
     protected Vector3 ForwardFlat
     {
         get
         {
-            Vector3 forward = transform.TransformDirection(modelForward);
-            forward.y = 0f;
-            if (forward.sqrMagnitude < 0.0001f)
+            Vector3 flat = ProjectFlat(modelForward);
+            if (flat.sqrMagnitude >= 0.0001f)
             {
-                forward = transform.forward;
-                forward.y = 0f;
+                return flat;
             }
-            return forward.sqrMagnitude < 0.0001f ? Vector3.forward : forward.normalized;
+
+            Vector3[] fallbackAxes = { Vector3.forward, Vector3.up, Vector3.right };
+            foreach (Vector3 axis in fallbackAxes)
+            {
+                flat = ProjectFlat(axis);
+                if (flat.sqrMagnitude >= 0.0001f)
+                {
+                    return flat;
+                }
+            }
+
+            if (agent != null)
+            {
+                flat = agent.velocity;
+                flat.y = 0f;
+                if (flat.sqrMagnitude >= 0.0001f)
+                {
+                    return flat.normalized;
+                }
+            }
+
+            return Vector3.zero;
         }
+    }
+
+    private Vector3 ProjectFlat(Vector3 localAxis)
+    {
+        Vector3 world = transform.TransformDirection(localAxis);
+        world.y = 0f;
+        return world.sqrMagnitude >= 0.0001f ? world.normalized : Vector3.zero;
     }
 
     private static TankController cachedPlayer;
@@ -76,6 +107,7 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
         player = FindPlayer();
         currentHealth = maxHealth;
         FitColliderToMesh();
+        PlaceOnNavMesh();
     }
 
     protected virtual void Update()
@@ -150,7 +182,7 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
     {
         GameObject projectile = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         projectile.name = "EnemyProjectile";
-        projectile.transform.localScale = Vector3.one * EnemyProjectileScale();
+        projectile.transform.localScale = Vector3.one * projectileScale;
         projectile.transform.SetPositionAndRotation(
             position,
             Quaternion.LookRotation(direction.normalized, Vector3.up));
@@ -177,17 +209,12 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
         return projectile;
     }
 
-    private static float EnemyProjectileScale()
-    {
-        return 20f;
-    }
-
     private void UpdateIdleState()
     {
         if (Vector3.Distance(transform.position, TargetPosition()) <= detectionRange)
         {
             currentState = EnemyState.Chase;
-            agent.isStopped = false;
+            SetStopped(false);
         }
     }
 
@@ -195,8 +222,8 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
     {
         if (IsLured)
         {
-            agent.SetDestination(TargetPosition());
-            agent.isStopped = false;
+            TrySetDestination(TargetPosition());
+            SetStopped(false);
             return;
         }
 
@@ -205,17 +232,17 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
         if (distance > detectionRange)
         {
             currentState = EnemyState.Idle;
-            agent.isStopped = true;
+            SetStopped(true);
         }
         else if (distance <= attackRange)
         {
             currentState = EnemyState.Attack;
-            agent.isStopped = true;
+            SetStopped(true);
         }
         else
         {
-            agent.SetDestination(TargetPosition());
-            agent.isStopped = false;
+            TrySetDestination(TargetPosition());
+            SetStopped(false);
         }
 
         RotateIfNeeded(TargetPosition());
@@ -226,7 +253,7 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
         if (IsLured)
         {
             currentState = EnemyState.Chase;
-            agent.isStopped = false;
+            SetStopped(false);
             return;
         }
 
@@ -235,7 +262,7 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
         if (distance > detectionRange)
         {
             currentState = EnemyState.Idle;
-            agent.isStopped = true;
+            SetStopped(true);
             return;
         }
 
@@ -332,6 +359,49 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
         return player != null ? player.position : transform.position;
     }
 
+    /// <summary>
+    /// Coloca al agente sobre el navmesh mas cercano a su spawn si este cayo
+    /// fuera (por escalas/posiciones manuales). Evita "SetDestination can
+    /// only be called on an active agent that has been placed on a NavMesh".
+    /// </summary>
+    private void PlaceOnNavMesh()
+    {
+        if (agent == null || agent.isOnNavMesh)
+        {
+            return;
+        }
+
+        if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 50f, agent.areaMask))
+        {
+            if (Mathf.Abs(hit.position.y - transform.position.y) <= 20f)
+            {
+                agent.Warp(hit.position);
+            }
+            else
+            {
+                Debug.LogWarning($"[EnemyTemplate] {name} descarto punto del navmesh demasiado alto (Y={hit.position.y:F1}).", this);
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[EnemyTemplate] {name} no encontro navmesh cerca del spawn.", this);
+        }
+    }
+
+    private bool TrySetDestination(Vector3 position)
+    {
+        return agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh && agent.SetDestination(position);
+    }
+
+    private void SetStopped(bool stopped)
+    {
+        if (agent == null || !agent.isActiveAndEnabled || !agent.isOnNavMesh)
+        {
+            return;
+        }
+        agent.isStopped = stopped;
+    }
+
     private void SetCollidersEnabled(bool enabled)
     {
         foreach (Collider collider in GetComponentsInChildren<Collider>())
@@ -385,16 +455,16 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
 
     private static Transform FindPlayer()
     {
-        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-        if (playerObject != null)
-        {
-            return playerObject.transform;
-        }
-
         if (cachedPlayer == null)
         {
             cachedPlayer = FindFirstObjectByType<TankController>();
         }
-        return cachedPlayer != null ? cachedPlayer.transform : null;
+        if (cachedPlayer != null)
+        {
+            return cachedPlayer.transform;
+        }
+
+        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+        return playerObject != null ? playerObject.transform : null;
     }
 }

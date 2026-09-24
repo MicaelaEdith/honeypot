@@ -170,6 +170,7 @@ MonoBehaviour:
   hoverHeight: 0
   rotateTowardPlayer: 1
   rotateSpeed: 120
+  modelForward: {x: 1, y: 0, z: 0}
   contactDamage: 0
   contactRange: 40
   contactCooldown: 1

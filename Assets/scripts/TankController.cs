@@ -38,6 +38,25 @@ public class TankController : MonoBehaviour, IDamagable, IHealth
     public float CurrentHealth => currentHealth;
     public float MaxHealth => maxHealth;
 
+    /// <summary>
+    /// Direccion horizontal (world space) hacia la que avanza el tanque al
+    /// presionar W. Recalculada en cada acceso: sigue al giro A/D y al
+    /// respawn. Usado por la camara para quedar detras del morro.
+    /// </summary>
+    public Vector3 MovingForward
+    {
+        get
+        {
+            Vector3 direction = transform.TransformDirection(forwardLocal);
+            direction.y = 0f;
+            if (direction.sqrMagnitude > 0.0001f)
+            {
+                return direction.normalized;
+            }
+            return transform.forward;
+        }
+    }
+
     private void Awake()
     {
         controller = GetComponent<CharacterController>();

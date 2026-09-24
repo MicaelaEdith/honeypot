@@ -17,7 +17,12 @@ public class EnemyMelee : EnemyTemplate
 
         if (currentState != EnemyState.Death)
         {
-            transform.Rotate(Vector3.forward, rollSpeed * Time.deltaTime, Space.Self);
+            Vector3 velocity = Vector3.ProjectOnPlane(agent.velocity, Vector3.up);
+            Vector3 axis = Vector3.Cross(Vector3.up, velocity.normalized);
+            if (axis.sqrMagnitude > 0.0001f)
+            {
+                transform.Rotate(axis.normalized, rollSpeed * Time.deltaTime, Space.World);
+            }
         }
     }
 }
