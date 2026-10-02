@@ -7,11 +7,10 @@ using UnityEngine;
 public class EnemyTankShip : EnemyTemplate
 {
     [Header("Cañon")]
-    [Tooltip("Boca del cañon. Dejalo vacio y se calcula con muzzleLength hacia adelante.")]
+    [Tooltip("Boca del cañon. Dejalo vacio y se calcula con el tamaño del casco hacia adelante.")]
     [SerializeField] private Transform muzzle;
-    [Tooltip("Distancia desde el centro hasta la boca si muzzle esta vacio.")]
-    [SerializeField] private float muzzleLength = 60f;
-    [SerializeField] private float projectileSpeed = 110f;
+    [Tooltip("Distancia desde el centro hasta la boca si muzzle esta vacio. 0 = se calcula con el tamaño real del casco.")]
+    [SerializeField] private float muzzleLength = 0f;
     [Tooltip("Angulo maximo de desalineacion para poder disparar.")]
     [SerializeField] private float aimTolerance = 4f;
 
@@ -36,7 +35,10 @@ public class EnemyTankShip : EnemyTemplate
             return;
         }
 
-        Vector3 muzzlePosition = muzzle != null ? muzzle.position : transform.position + direction * muzzleLength;
-        SpawnEnemyProjectile(muzzlePosition, direction, projectileSpeed, damageAmount);
+        Vector3 muzzlePosition = muzzle != null
+            ? muzzle.position
+            : transform.position + direction * MuzzleDistanceAlong(direction, muzzleLength);
+
+        SpawnEnemyProjectile(muzzlePosition, direction, player.position, damageAmount);
     }
 }

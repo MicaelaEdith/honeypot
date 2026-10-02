@@ -22,13 +22,24 @@ public class CannonController : MonoBehaviour
     [SerializeField] private float rotationSpeed = 200f;
 
     [Header("Disparo")]
-    [SerializeField] private float projectileSpeed = 150f;
+    [Tooltip("Velocidad en unidades por segundo. 0 = se deriva de la distancia para que tarde flightTime en llegar.")]
+    [SerializeField] private float projectileSpeed = 0f;
     [SerializeField] private float fireCooldown = 0.3f;
-    [Tooltip("Escala si se usa una esfera generada (sin prefab).")]
-    [SerializeField] private float projectileScale = 20f;
-    [Tooltip("Multiplicador sobre el prefab del proyectil (por si el mundo esta a otra escala).")]
+    [Tooltip("Escala si se usa una esfera generada (sin prefab). 0 = se deriva del casco.")]
+    [SerializeField] private float projectileScale = 0f;
+    [Tooltip("Multiplicador sobre el tamaño derivado (por si el mundo esta a otra escala).")]
     [SerializeField] private float projectileScaleMultiplier = 1f;
-    [Tooltip("Multiplicador sobre el prefab del VFX de impacto.")]
+
+    [Header("Escala relativa al casco")]
+    [Tooltip("El tanque viene de FBX con escala raiz ~100 (unos 200u de largo), asi que el proyectil del prefab (escala 0.2) era 1/1000 del tanque: invisible, y solo se veia la nube de impacto. Con 0 se usa este factor sobre el radio real del casco.")]
+    [SerializeField] private float projectileSizeFactor = 0.05f;
+    [Tooltip("Segundos que tarda la bala en llegar al punto apuntado (solo si projectileSpeed = 0).")]
+    [SerializeField] private float flightTime = 0.6f;
+    [Tooltip("Diametro del VFX de impacto, como multiple del diametro de la bala. El prefab ImpactVFX esta authoring para ~5.5u (chispas a 5.5 u/s durante 0.5s = 2.75u de radio), asi que se reescala a esta medida.")]
+    [SerializeField] private float impactVfxDiameterFactor = 2f;
+    [Tooltip("Diametro natural del prefab de VFX de impacto, en unidades de mundo.")]
+    [SerializeField] private float impactVfxReferenceDiameter = 5.5f;
+    [Tooltip("Multiplicador extra sobre el VFX de impacto.")]
     [SerializeField] private float impactVfxScale = 1f;
 
     private static readonly string[] CannonNames =
@@ -147,6 +158,9 @@ public class CannonController : MonoBehaviour
     {
         Vector3 direction = BarrelDirection;
         Vector3 spawn = MuzzleWorldPosition();
+        Vector3 aimPoint = GetMouseGroundPoint(AimPlaneHeight());
+
+        float diameter = ProjectileDiameter();
 
         bool fromPrefab = projectilePrefab != null;
         GameObject projectile = fromPrefab
@@ -155,11 +169,16 @@ public class CannonController : MonoBehaviour
 
         if (fromPrefab)
         {
-            projectile.transform.localScale *= projectileScaleMultiplier;
+            // Se mide el clon (que ya trae la escala local del prefab, 0.2u) y se
+            // corrige por multiplicative: asi el diametro final es exactamente el
+            // pedido sin asumir nada del collider ni pisar la escala del prefab.
+            float current = WorldDiameter(projectile);
+            float factor = current > 0.0001f ? diameter / current : 1f;
+            projectile.transform.localScale *= factor * projectileScaleMultiplier;
         }
         else
         {
-            projectile.transform.localScale = Vector3.one * projectileScale;
+            projectile.transform.localScale = Vector3.one * (diameter * projectileScaleMultiplier);
         }
 
         projectile.transform.SetPositionAndRotation(
@@ -180,7 +199,7 @@ public class CannonController : MonoBehaviour
         body.useGravity = false;
         body.isKinematic = false;
         body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-        body.linearVelocity = direction * projectileSpeed;
+        body.linearVelocity = direction * ProjectileSpeedTo(spawn, aimPoint);
 
         if (collider != null)
         {
@@ -193,7 +212,76 @@ public class CannonController : MonoBehaviour
             projectileScript = projectile.AddComponent<Projectile>();
         }
         projectileScript.impactVfx = impactVfxPrefab;
-        projectileScript.impactVfxScale = impactVfxScale;
+        projectileScript.impactVfxScale = ImpactVfxScale(diameter);
+    }
+
+    /// <summary>
+    /// Radio horizontal del tanque en unidades de mundo, sobre los bounds reales de
+    /// los renderers (mismo criterio que EnemyTemplate.HullRadius).
+    /// </summary>
+    private float HullRadius()
+    {
+        Renderer[] renderers = GetComponentsInChildren<Renderer>();
+        if (renderers.Length == 0)
+        {
+            return 1f;
+        }
+
+        Bounds bounds = renderers[0].bounds;
+        for (int i = 1; i < renderers.Length; i++)
+        {
+            bounds.Encapsulate(renderers[i].bounds);
+        }
+
+        return Mathf.Max(Mathf.Max(bounds.extents.x, bounds.extents.z), 0.0001f);
+    }
+
+    private float ProjectileDiameter()
+    {
+        if (projectileScale > 0f)
+        {
+            return projectileScale;
+        }
+        return HullRadius() * Mathf.Max(projectileSizeFactor, 0f);
+    }
+
+    /// <summary>
+    /// Velocidad para que la bala llegue al punto apuntado en flightTime segundos.
+    /// Con 150 u/s fijas el tiro cruzaba la pantalla en una fraccion de frame.
+    /// </summary>
+    private float ProjectileSpeedTo(Vector3 from, Vector3 to)
+    {
+        if (projectileSpeed > 0f)
+        {
+            return projectileSpeed;
+        }
+        float seconds = Mathf.Max(flightTime, 0.05f);
+        return Mathf.Max(Vector3.Distance(from, to) / seconds, 0.0001f);
+    }
+
+    /// <summary>
+    /// Escala del VFX de impacto para que mida impactVfxDiameterFactor veces la bala.
+    /// </summary>
+    private float ImpactVfxScale(float shellDiameter)
+    {
+        float reference = Mathf.Max(impactVfxReferenceDiameter, 0.0001f);
+        float ratio = shellDiameter * Mathf.Max(impactVfxDiameterFactor, 0f) / reference;
+        return ratio * Mathf.Max(impactVfxScale, 0f);
+    }
+
+    /// <summary>
+    /// Diametro en unidades de mundo del objeto, medido sobre sus colliders (ya
+    /// incluye cualquier escala local que traiga el prefab).
+    /// </summary>
+    private static float WorldDiameter(GameObject target)
+    {
+        float max = 0f;
+        foreach (Collider other in target.GetComponentsInChildren<Collider>())
+        {
+            Vector3 size = other.bounds.size;
+            max = Mathf.Max(max, Mathf.Max(size.x, Mathf.Max(size.y, size.z)));
+        }
+        return max;
     }
 
     private void IgnorePlayerCollisions(Collider projectileCollider)

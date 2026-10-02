@@ -163,20 +163,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyTankShip
   maxHealth: 60
-  detectionRange: 60
-  attackRange: 30
+  detectionRange: 0
+  attackRange: 0
   damageAmount: 12
-  attackCooldown: 1.2
+  attackCooldown: 3
   hoverHeight: 0
   rotateTowardPlayer: 1
   rotateSpeed: 120
   modelForward: {x: 1, y: 0, z: 0}
   contactDamage: 0
-  contactRange: 40
+  contactRange: 0
   contactCooldown: 1
   sinkSpeed: 4
   sinkDuration: 1.5
+  detectionRangeFactor: 2.5
+  attackRangeFactor: 1.5
+  projectileSizeFactor: 0.05
+  muzzleMarginFactor: 0.1
+  flightTime: 1.2
+  projectileSpeed: 0
+  projectileScale: 0
   muzzle: {fileID: 0}
-  muzzleLength: 60
-  projectileSpeed: 110
+  muzzleLength: 0
   aimTolerance: 4
