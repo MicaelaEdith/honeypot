@@ -166,22 +166,22 @@ MonoBehaviour:
   detectionRange: 0
   attackRange: 0
   damageAmount: 12
-  attackCooldown: 3
+  attackCooldown: 2
   hoverHeight: 0
   rotateTowardPlayer: 1
   rotateSpeed: 120
-  modelForward: {x: 1, y: 0, z: 0}
+  modelForward: {x: -1, y: 0, z: 0}
   contactDamage: 0
   contactRange: 0
   contactCooldown: 1
   sinkSpeed: 4
   sinkDuration: 1.5
-  detectionRangeFactor: 2.5
-  attackRangeFactor: 1.5
-  projectileSizeFactor: 0.05
+  detectionRangeFactor: 10
+  attackRangeFactor: 6
+  projectileSizeFactor: 0.055
   muzzleMarginFactor: 0.1
-  flightTime: 1.2
-  projectileSpeed: 0
+  projectileSpeed: 55
+  flightTime: 1.05
   projectileScale: 0
   muzzle: {fileID: 0}
   muzzleLength: 0

@@ -53,6 +53,10 @@ public class CannonController : MonoBehaviour
 
     public Transform CannonRoot => cannonRoot;
 
+    public GameObject ProjectilePrefab => projectilePrefab;
+
+    public GameObject ImpactVfxPrefab => impactVfxPrefab;
+
     public Vector3 BarrelDirection
     {
         get

@@ -39,6 +39,26 @@ public class TankController : MonoBehaviour, IDamagable, IHealth
     public float MaxHealth => maxHealth;
 
     /// <summary>
+    /// Se dispara en cada cambio de vida con (actual, maxima). Es lo unico que la
+    /// UI necesita para dibujar la barra y el estado de la abeja.
+    ///
+    /// Va como evento en el tanque y no como variable global en un GameManager a
+    /// proposito: la vida ya tiene dueno (esta misma clase), y duplicarla en un
+    /// singleton son dos fuentes de verdad que divergen en cuanto una se actualiza y
+    /// la otra no (respawn, cura, cambio de escena). Con el evento la UI se entera
+    /// solo cuando el numero cambia, en vez de interrogarlo cada frame.
+    ///
+    /// Lo que SI es estado de partida (bombas, puntos, olas) va en un GameManager.
+    /// </summary>
+    public event System.Action<float, float> OnHealthChanged;
+
+    private void SetHealth(float value)
+    {
+        currentHealth = Mathf.Clamp(value, 0f, maxHealth);
+        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+    }
+
+    /// <summary>
     /// Direccion horizontal (world space) hacia la que avanza el tanque al
     /// presionar W. Recalculada en cada acceso: sigue al giro A/D y al
     /// respawn. Usado por la camara para quedar detras del morro.
@@ -70,7 +90,7 @@ public class TankController : MonoBehaviour, IDamagable, IHealth
         {
             FitController();
         }
-        currentHealth = maxHealth;
+        SetHealth(maxHealth);
         spawnPoint = transform.position;
     }
 
@@ -81,7 +101,7 @@ public class TankController : MonoBehaviour, IDamagable, IHealth
             return;
         }
 
-        currentHealth -= Mathf.Max(0f, damage);
+        SetHealth(currentHealth - Mathf.Max(0f, damage));
         Debug.Log($"[TankController] El tanque recibio {damage} de daño. Vida: {currentHealth}", this);
 
         if (currentHealth <= 0f)
@@ -96,13 +116,13 @@ public class TankController : MonoBehaviour, IDamagable, IHealth
         {
             return;
         }
-        currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
+        SetHealth(currentHealth + amount);
     }
 
     private void Respawn()
     {
         Debug.Log("[TankController] El tanque fue destruido. Respawneando...", this);
-        currentHealth = maxHealth;
+        SetHealth(maxHealth);
         transform.SetPositionAndRotation(spawnPoint, Quaternion.identity);
         verticalSpeed = 0f;
     }
