@@ -117,7 +117,7 @@ NavMeshAgent:
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 0.5
-  m_Speed: 3.5
+  m_Speed: 6
   m_Acceleration: 8
   avoidancePriority: 50
   m_AngularSpeed: 120
@@ -163,11 +163,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyTankShip
   maxHealth: 60
-  detectionRange: 0
+  detectionRange: 45
   attackRange: 0
   damageAmount: 12
   attackCooldown: 2
   hoverHeight: 0
+  detectionRangeFactor: 20
+  attackRangeFactor: 3.5
+  projectileSizeFactor: 0.055
+  muzzleMarginFactor: 0.1
+  flightTime: 1.05
+  projectileSpeed: 55
+  projectileScale: 0
+  projectilePrefab: {fileID: 0}
+  impactVfxPrefab: {fileID: 0}
+  impactVfxDiameterFactor: 2
+  impactVfxReferenceDiameter: 5.5
+  impactVfxScale: 1
   rotateTowardPlayer: 1
   rotateSpeed: 120
   modelForward: {x: -1, y: 0, z: 0}
@@ -176,13 +188,7 @@ MonoBehaviour:
   contactCooldown: 1
   sinkSpeed: 4
   sinkDuration: 1.5
-  detectionRangeFactor: 10
-  attackRangeFactor: 6
-  projectileSizeFactor: 0.055
-  muzzleMarginFactor: 0.1
-  projectileSpeed: 55
-  flightTime: 1.05
-  projectileScale: 0
   muzzle: {fileID: 0}
   muzzleLength: 0
-  aimTolerance: 4
+  aimConvergence: 0.2
+  aimJitter: 2.5

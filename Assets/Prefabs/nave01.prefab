@@ -101,7 +101,7 @@ NavMeshAgent:
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 0.0045
-  m_Speed: 3.5
+  m_Speed: 5.5
   m_Acceleration: 8
   avoidancePriority: 50
   m_AngularSpeed: 120
@@ -147,11 +147,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyShooter
   maxHealth: 60
-  detectionRange: 0
+  detectionRange: 30
   attackRange: 0
   damageAmount: 12
   attackCooldown: 3
   hoverHeight: 0
+  detectionRangeFactor: 2.5
+  attackRangeFactor: 1.5
+  projectileSizeFactor: 0.05
+  muzzleMarginFactor: 0.1
+  flightTime: 1.2
+  projectileSpeed: 0
+  projectileScale: 0
+  projectilePrefab: {fileID: 0}
+  impactVfxPrefab: {fileID: 0}
+  impactVfxDiameterFactor: 2
+  impactVfxReferenceDiameter: 5.5
+  impactVfxScale: 1
   rotateTowardPlayer: 1
   rotateSpeed: 120
   modelForward: {x: 1, y: 0, z: 0}
@@ -160,13 +172,6 @@ MonoBehaviour:
   contactCooldown: 1
   sinkSpeed: 4
   sinkDuration: 1.5
-  detectionRangeFactor: 2.5
-  attackRangeFactor: 1.5
-  projectileSizeFactor: 0.05
-  muzzleMarginFactor: 0.1
-  flightTime: 1.2
-  projectileSpeed: 0
-  projectileScale: 0
   muzzleRadius: 0
   spreadAngle: 120
   maxArcHalfAngle: 60

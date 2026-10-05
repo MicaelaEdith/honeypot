@@ -31,7 +31,7 @@ public class BeeStatusView : MonoBehaviour
 
     [Tooltip("Escala maxima del rebote al recibir dano.")]
     [Range(1f, 2f)]
-    [SerializeField] private float punchScale = 1.25f;
+    [SerializeField] private float punchScale = 1.05f;
 
     [Tooltip("Duracion del rebote en segundos.")]
     [SerializeField] private float punchSeconds = 0.25f;
