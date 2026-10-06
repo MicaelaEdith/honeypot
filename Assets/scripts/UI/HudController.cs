@@ -30,6 +30,9 @@ public class HudController : MonoBehaviour
     [Tooltip("Si se deja vacio se busca el primero de la escena al Awake.")]
     [SerializeField] private TankController tank;
 
+    [Tooltip("Si se deja vacio se busca el primero de la escena al Awake.")]
+    [SerializeField] private HoneyPotActivator honeypotActivator;
+
     [SerializeField] private HealthBarView healthBar;
     [SerializeField] private BeeStatusView bee;
     [SerializeField] private BombCounterView bombs;
@@ -37,16 +40,24 @@ public class HudController : MonoBehaviour
     private void Awake()
     {
         ResolveTank();
+        ResolveHoneypotActivator();
     }
 
     private void OnEnable()
     {
         ResolveTank();
+        ResolveHoneypotActivator();
 
         if (tank != null)
         {
             tank.OnHealthChanged -= HandleHealth;
             tank.OnHealthChanged += HandleHealth;
+        }
+
+        if (honeypotActivator != null)
+        {
+            honeypotActivator.OnHoneypotCountChanged -= HandleHoneypotCount;
+            honeypotActivator.OnHoneypotCountChanged += HandleHoneypotCount;
         }
 
         Debug.Log($"[HudController] tank={(tank != null ? tank.name : "NULL")} " +
@@ -59,12 +70,19 @@ public class HudController : MonoBehaviour
         {
             tank.OnHealthChanged -= HandleHealth;
         }
+
+        if (honeypotActivator != null)
+        {
+            honeypotActivator.OnHoneypotCountChanged -= HandleHoneypotCount;
+        }
     }
 
     private void Start()
     {
         ResolveTank();
+        ResolveHoneypotActivator();
         PushCurrentHealth();
+        PushCurrentHoneypotCount();
     }
 
     private void ResolveTank()
@@ -75,12 +93,42 @@ public class HudController : MonoBehaviour
         }
     }
 
+    private void ResolveHoneypotActivator()
+    {
+        if (honeypotActivator == null)
+        {
+            honeypotActivator = FindFirstObjectByType<HoneyPotActivator>();
+        }
+    }
+
     private void PushCurrentHealth()
     {
         if (tank != null)
         {
             HandleHealth(tank.CurrentHealth, tank.MaxHealth);
         }
+    }
+
+    private void PushCurrentHoneypotCount()
+    {
+        if (honeypotActivator != null)
+        {
+            HandleHoneypotCount(honeypotActivator.RemainingHoneypots);
+        }
+    }
+
+    private void HandleHoneypotCount(int count)
+    {
+        if (bombs == null)
+        {
+            Debug.LogError("[HudController] bombs sin asignar: el contador no se va a actualizar.", this);
+        }
+        else
+        {
+            bombs.SetCount(count);
+        }
+
+        Debug.Log($"[HudController] honeypots restantes {count}", this);
     }
 
     private void HandleHealth(float current, float max)

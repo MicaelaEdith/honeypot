@@ -131,10 +131,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: nave02
       objectReference: {fileID: 0}
-    - target: {fileID: 548689081499350427, guid: ba96c8b11b8dcf6ec8d776478d24bb3e, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 925073543649505057, guid: ba96c8b11b8dcf6ec8d776478d24bb3e, type: 3}
       propertyPath: m_LocalPosition.x
       value: 45
@@ -145,7 +141,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 925073543649505057, guid: ba96c8b11b8dcf6ec8d776478d24bb3e, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 15.88
+      value: 45
       objectReference: {fileID: 0}
     - target: {fileID: 925073543649505057, guid: ba96c8b11b8dcf6ec8d776478d24bb3e, type: 3}
       propertyPath: m_LocalRotation.w
@@ -174,10 +170,6 @@ PrefabInstance:
     - target: {fileID: 925073543649505057, guid: ba96c8b11b8dcf6ec8d776478d24bb3e, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5177000000000000003, guid: ba96c8b11b8dcf6ec8d776478d24bb3e, type: 3}
-      propertyPath: deathVfxScaleMultiplier
-      value: 30
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2904,10 +2896,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: nave01
       objectReference: {fileID: 0}
-    - target: {fileID: 4629132297570434090, guid: aff8298466b4779ee9526522a9835040, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 5437581845401790096, guid: aff8298466b4779ee9526522a9835040, type: 3}
       propertyPath: m_LocalPosition.x
       value: 59.56
@@ -2987,7 +2975,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3219354566473799466, guid: be2c44841ac3de4399c7961be1e2ef3f, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 49.56
+      value: 60.8
       objectReference: {fileID: 0}
     - target: {fileID: 3219354566473799466, guid: be2c44841ac3de4399c7961be1e2ef3f, type: 3}
       propertyPath: m_LocalPosition.y
@@ -2995,7 +2983,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3219354566473799466, guid: be2c44841ac3de4399c7961be1e2ef3f, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 15.69
+      value: 26.4
       objectReference: {fileID: 0}
     - target: {fileID: 3219354566473799466, guid: be2c44841ac3de4399c7961be1e2ef3f, type: 3}
       propertyPath: m_LocalRotation.w
@@ -4378,7 +4366,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2d5f38403e5448a1b9eaed5d9875122c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HoneyPotActivator
-  honeypotPrefab: {fileID: 8014819846882721914, guid: 7011070824e4358e2ab491699a413548, type: 3}
+  honeypotPrefab: {fileID: 100100000, guid: 7011070824e4358e2ab491699a413548, type: 3}
   maxHoneypots: 10
   degreesToActivate: 360
   spawnOffset: {x: 0, y: 0, z: 0}

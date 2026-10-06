@@ -9,8 +9,8 @@ public class HoneyPotBeeAnimator : MonoBehaviour
     [SerializeField] private Transform bee004;
 
     [Header("Animacion")]
-    [Tooltip("Altura maxima que suben/bajan (en unidades locales).")]
-    [SerializeField] private float amplitude = 0.08f;
+    [Tooltip("Altura maxima que suben/bajan (unidades locales del FBX; con la escala del prefab, ~12 es ~1.7u de mundo).")]
+    [SerializeField] private float amplitude = 4f;
 
     [Tooltip("Velocidad de bee.001 y bee.003 (suben y luego bajen).")]
     [SerializeField] private float speedFast = 1.8f;
@@ -25,6 +25,11 @@ public class HoneyPotBeeAnimator : MonoBehaviour
 
     private void Start()
     {
+        if (bee001 == null) bee001 = FindChildByName("bee.001");
+        if (bee002 == null) bee002 = FindChildByName("bee.002");
+        if (bee003 == null) bee003 = FindChildByName("bee.003");
+        if (bee004 == null) bee004 = FindChildByName("bee.004");
+
         if (bee001 != null)
         {
             baseY001 = bee001.localPosition.y;
@@ -44,6 +49,20 @@ public class HoneyPotBeeAnimator : MonoBehaviour
         {
             baseY004 = bee004.localPosition.y;
         }
+    }
+
+    private Transform FindChildByName(string childName)
+    {
+        foreach (Transform t in GetComponentsInChildren<Transform>(true))
+        {
+            if (t.name == childName)
+            {
+                return t;
+            }
+        }
+
+        Debug.LogWarning("[HoneyPotBeeAnimator] No se encontro el hijo '" + childName + "'.");
+        return null;
     }
 
     private void Update()

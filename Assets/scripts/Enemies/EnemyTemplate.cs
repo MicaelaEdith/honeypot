@@ -63,6 +63,7 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
     [SerializeField] private float contactCooldown = 1f;
 
     [Header("Muerte")]
+    [SerializeField] private float deathVfxScaleMultiplier = 3f;
     [SerializeField] private float sinkSpeed = 4f;
     [SerializeField] private float sinkDuration = 1.5f;
 
@@ -70,6 +71,7 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
     protected EnemyState currentState { get; private set; } = EnemyState.Idle;
     protected Transform player { get; private set; }
     protected bool IsLured => lurePosition.HasValue;
+    public EnemyState CurrentState => currentState;
 
     /// <summary>
     /// Direccion horizontal hacia la que apunta el morro de la nave (modelForward
@@ -134,6 +136,7 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
     private Vector3 sinkStart;
     private float sinkEndTime;
     private bool sinkStarted;
+    private Vector3 deathStartScale;
     private bool hoverChecked;
     private float hullRadius;
     private Bounds hullBounds;
@@ -616,6 +619,13 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
 
     private void UpdateIdleState()
     {
+        if (IsLured)
+        {
+            currentState = EnemyState.Chase;
+            SetStopped(false);
+            return;
+        }
+
         if (Vector3.Distance(transform.position, TargetPosition()) <= DetectionRange())
         {
             currentState = EnemyState.Chase;
@@ -694,18 +704,39 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
             agent.enabled = false;
             sinkStart = transform.position;
             sinkEndTime = Time.time + sinkDuration;
+            deathStartScale = transform.localScale;
             SetCollidersEnabled(false);
+            SpawnDeathExplosion();
             OnDeathStarted();
         }
 
+        float duration = Mathf.Max(sinkDuration, 0.0001f);
+        float t = Mathf.Clamp01(1f - (sinkEndTime - Time.time) / duration);
+
         if (Time.time < sinkEndTime)
         {
-            transform.position = sinkStart + Vector3.down * (sinkSpeed * (Time.time - (sinkEndTime - sinkDuration)));
+            transform.position = sinkStart + Vector3.down * (sinkSpeed * t * duration);
+            Vector3 scale = deathStartScale;
+            scale.y *= 1f - t;
+            transform.localScale = scale;
         }
         else
         {
             Destroy(gameObject);
         }
+    }
+
+    private void SpawnDeathExplosion()
+    {
+        if (playerStyleImpactVfx == null)
+        {
+            return;
+        }
+
+        GameObject vfx = Instantiate(playerStyleImpactVfx, HullCenter(), Quaternion.identity);
+        vfx.transform.localScale *= ImpactVfxScale(HullRadius() * 2f) * deathVfxScaleMultiplier;
+        Debug.Log($"[{name}] DeathVFX spawn={(vfx != null ? vfx.name : "NULL")} pos={HullCenter()} hullR={HullRadius():F2} scale={vfx.transform.localScale}", this);
+        Destroy(vfx, 2.5f);
     }
 
     /// <summary>Hook para que GameManager (Etapa D) cuente bajas sin acoplarse. </summary>
