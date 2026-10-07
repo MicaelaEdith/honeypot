@@ -133,7 +133,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 548689081499350427, guid: ba96c8b11b8dcf6ec8d776478d24bb3e, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 925073543649505057, guid: ba96c8b11b8dcf6ec8d776478d24bb3e, type: 3}
       propertyPath: m_LocalPosition.x
@@ -181,7 +181,7 @@ PrefabInstance:
       objectReference: {fileID: 189680566463950908, guid: c31129ada5164f2895be77d51e4933e0, type: 3}
     - target: {fileID: 5177000000000000003, guid: ba96c8b11b8dcf6ec8d776478d24bb3e, type: 3}
       propertyPath: deathVfxScaleMultiplier
-      value: 8
+      value: 5.7
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -827,7 +827,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 548689081499350427, guid: ba96c8b11b8dcf6ec8d776478d24bb3e, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 925073543649505057, guid: ba96c8b11b8dcf6ec8d776478d24bb3e, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2971,7 +2971,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4629132297570434090, guid: aff8298466b4779ee9526522a9835040, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5437581845401790096, guid: aff8298466b4779ee9526522a9835040, type: 3}
       propertyPath: m_LocalPosition.x
@@ -3023,7 +3023,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7949909318131559516, guid: aff8298466b4779ee9526522a9835040, type: 3}
       propertyPath: deathVfxScaleMultiplier
-      value: 8
+      value: 5.7
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -3056,7 +3056,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 734102233264652257, guid: be2c44841ac3de4399c7961be1e2ef3f, type: 3}
       propertyPath: deathVfxScaleMultiplier
-      value: 8
+      value: 5.7
       objectReference: {fileID: 0}
     - target: {fileID: 2875162739612028304, guid: be2c44841ac3de4399c7961be1e2ef3f, type: 3}
       propertyPath: m_Name
@@ -3064,7 +3064,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2875162739612028304, guid: be2c44841ac3de4399c7961be1e2ef3f, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3219354566473799466, guid: be2c44841ac3de4399c7961be1e2ef3f, type: 3}
       propertyPath: m_LocalPosition.x

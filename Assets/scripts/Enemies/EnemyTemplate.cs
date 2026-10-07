@@ -65,9 +65,25 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
     [Header("Muerte")]
     [Tooltip("VFX propio de la muerte. Vacio = Resources/DeathVFX, y si no existe se cae al VFX de impacto.")]
     [SerializeField] private GameObject deathVfxPrefab;
-    [SerializeField] private float deathVfxScaleMultiplier = 8f;
-    [SerializeField] private float sinkSpeed = 4f;
-    [SerializeField] private float sinkDuration = 1.5f;
+    [SerializeField] private float deathVfxScaleMultiplier = 5.7f;
+    [Tooltip("Cantidad de explosiones que se instancian al morir (la primera centrada, las demas con offset).")]
+    [SerializeField] private int deathVfxExplosionCount = 3;
+    [Tooltip("Demora entre explosiones consecutivas, en segundos.")]
+    [SerializeField] private float deathVfxExplosionDelay = 0.12f;
+    [Tooltip("Radio del offset aleatorio de las explosiones secundarias, como fraccion del radio del casco.")]
+    [SerializeField] private float deathVfxExplosionSpread = 0.4f;
+    [Tooltip("Multiplica la cantidad de particulas (bursts y rateOverTime) de cada explosion.")]
+    [SerializeField] private float deathVfxParticleMultiplier = 4f;
+    [Tooltip("Cuanto se agranda la nave antes de estallar (1 = no se agranda).")]
+    [SerializeField] private float deathSwellScale = 1.15f;
+    [Tooltip("Cantidad de pulsos (agranda/achica) antes de estallar; estalla en el ultimo pico.")]
+    [SerializeField] private int deathSwellPulses = 3;
+    [Tooltip("Duracion de la secuencia de pulsos previa a la explosion, en segundos.")]
+    [SerializeField] private float deathSwellDuration = 0.5f;
+
+    [Header("Separacion")]
+    [Tooltip("Radio de evitacion entre naves como fraccion del radio real del casco (1 = cascos apenas sin tocarse).")]
+    [SerializeField] private float avoidanceRadiusFactor = 1f;
 
     protected NavMeshAgent agent;
     protected EnemyState currentState { get; private set; } = EnemyState.Idle;
@@ -135,7 +151,6 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
     private float nextAttackTime;
     private float nextContactTime;
     private Vector3? lurePosition;
-    private Vector3 sinkStart;
     private float sinkEndTime;
     private bool sinkStarted;
     private Vector3 deathStartScale;
@@ -342,6 +357,12 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
         player = FindPlayer();
         currentHealth = maxHealth;
         FitColliderToMesh();
+        // El radio de evitacion del agente multiplica por la escala raiz (misma
+        // regla que HoverToBaseOffset); con los valores de prefab (~0.4u de mundo)
+        // las naves se veian como puntos y se atravesaban. Con el radio real del
+        // casco la evitacion built-in las hace curvar y rodearse.
+        float rootScale = Mathf.Max(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.z), 0.0001f);
+        agent.radius = HullRadius() * Mathf.Max(avoidanceRadiusFactor, 0f) / rootScale;
         PlaceOnNavMesh();
         ResolvePlayerStyleAssets();
     }
@@ -704,26 +725,25 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
         {
             sinkStarted = true;
             agent.enabled = false;
-            sinkStart = transform.position;
-            sinkEndTime = Time.time + sinkDuration;
+            sinkEndTime = Time.time + deathSwellDuration;
             deathStartScale = transform.localScale;
             SetCollidersEnabled(false);
-            SpawnDeathExplosion();
             OnDeathStarted();
         }
 
-        float duration = Mathf.Max(sinkDuration, 0.0001f);
+        float duration = Mathf.Max(deathSwellDuration, 0.0001f);
         float t = Mathf.Clamp01(1f - (sinkEndTime - Time.time) / duration);
 
         if (Time.time < sinkEndTime)
         {
-            transform.position = sinkStart + Vector3.down * (sinkSpeed * t * duration);
-            Vector3 scale = deathStartScale;
-            scale.y *= 1f - t;
-            transform.localScale = scale;
+            float pulses = Mathf.Max(deathSwellPulses, 1);
+            float pulse = Mathf.Abs(Mathf.Sin(t * Mathf.PI * (pulses - 0.5f)));
+            float amplitude = Mathf.Lerp(0.6f, 1f, t);
+            transform.localScale = deathStartScale * Mathf.Lerp(1f, deathSwellScale, pulse * amplitude);
         }
         else
         {
+            SpawnDeathExplosion();
             Destroy(gameObject);
         }
     }
@@ -744,15 +764,45 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
 
         Bounds live = LiveHullBounds();
         Vector3 deathPos = live.size.sqrMagnitude > 0.0001f ? live.center : transform.position;
-        GameObject vfx = Instantiate(deathVfx, deathPos, Quaternion.identity);
-        float deathScale = ImpactVfxScale(HullRadius() * 2f) * deathVfxScaleMultiplier;
-        foreach (ParticleSystem ps in vfx.GetComponentsInChildren<ParticleSystem>(true))
+        float hullR = HullRadius();
+        float deathScale = ImpactVfxScale(hullR * 2f) * deathVfxScaleMultiplier;
+        int count = Mathf.Max(deathVfxExplosionCount, 1);
+
+        for (int i = 0; i < count; i++)
         {
-            ParticleSystem.MainModule main = ps.main;
-            main.startSizeMultiplier *= deathScale;
+            Vector3 offset = Vector3.zero;
+            if (i > 0)
+            {
+                Vector2 circle = Random.insideUnitCircle * hullR * deathVfxExplosionSpread;
+                offset = new Vector3(circle.x, Random.Range(-0.5f, 0.5f) * hullR * deathVfxExplosionSpread, circle.y);
+            }
+
+            float delay = i * deathVfxExplosionDelay;
+            float scale = deathScale * (i == 0 ? 1f : 0.8f);
+            GameObject vfx = Instantiate(deathVfx, deathPos + offset, Quaternion.identity);
+
+            foreach (ParticleSystem ps in vfx.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                ParticleSystem.MainModule main = ps.main;
+                main.startDelay = delay;
+                main.startSizeMultiplier *= scale;
+
+                ParticleSystem.EmissionModule emission = ps.emission;
+                emission.rateOverTimeMultiplier *= deathVfxParticleMultiplier;
+                emission.rateOverDistanceMultiplier *= deathVfxParticleMultiplier;
+                for (int b = 0; b < emission.burstCount; b++)
+                {
+                    ParticleSystem.Burst burst = emission.GetBurst(b);
+                    float baseCount = Mathf.Max(burst.count.constant, burst.count.constantMin, 1f);
+                    float boosted = baseCount * deathVfxParticleMultiplier;
+                    burst.count = new ParticleSystem.MinMaxCurve(boosted, boosted);
+                    emission.SetBurst(b, burst);
+                }
+            }
+
+            Debug.Log($"[{name}] DeathVFX {i + 1}/{count} spawn={vfx.name} pos={vfx.transform.position} hullR={hullR:F2} scale={scale:F2} delay={delay:F2}", this);
+            Destroy(vfx, 4f + delay);
         }
-        Debug.Log($"[{name}] DeathVFX spawn={(vfx != null ? vfx.name : "NULL")} pos={deathPos} hullR={HullRadius():F2} scale={vfx.transform.localScale}", this);
-        Destroy(vfx, 4f);
     }
 
     /// <summary>Hook para que GameManager (Etapa D) cuente bajas sin acoplarse. </summary>
