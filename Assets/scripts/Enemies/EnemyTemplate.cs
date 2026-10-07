@@ -63,7 +63,9 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
     [SerializeField] private float contactCooldown = 1f;
 
     [Header("Muerte")]
-    [SerializeField] private float deathVfxScaleMultiplier = 3f;
+    [Tooltip("VFX propio de la muerte. Vacio = Resources/DeathVFX, y si no existe se cae al VFX de impacto.")]
+    [SerializeField] private GameObject deathVfxPrefab;
+    [SerializeField] private float deathVfxScaleMultiplier = 8f;
     [SerializeField] private float sinkSpeed = 4f;
     [SerializeField] private float sinkDuration = 1.5f;
 
@@ -728,15 +730,29 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
 
     private void SpawnDeathExplosion()
     {
-        if (playerStyleImpactVfx == null)
+        GameObject deathVfx = deathVfxPrefab != null
+            ? deathVfxPrefab
+            : Resources.Load<GameObject>("DeathVFX");
+        if (deathVfx == null)
+        {
+            deathVfx = playerStyleImpactVfx;
+        }
+        if (deathVfx == null)
         {
             return;
         }
 
-        GameObject vfx = Instantiate(playerStyleImpactVfx, HullCenter(), Quaternion.identity);
-        vfx.transform.localScale *= ImpactVfxScale(HullRadius() * 2f) * deathVfxScaleMultiplier;
-        Debug.Log($"[{name}] DeathVFX spawn={(vfx != null ? vfx.name : "NULL")} pos={HullCenter()} hullR={HullRadius():F2} scale={vfx.transform.localScale}", this);
-        Destroy(vfx, 2.5f);
+        Bounds live = LiveHullBounds();
+        Vector3 deathPos = live.size.sqrMagnitude > 0.0001f ? live.center : transform.position;
+        GameObject vfx = Instantiate(deathVfx, deathPos, Quaternion.identity);
+        float deathScale = ImpactVfxScale(HullRadius() * 2f) * deathVfxScaleMultiplier;
+        foreach (ParticleSystem ps in vfx.GetComponentsInChildren<ParticleSystem>(true))
+        {
+            ParticleSystem.MainModule main = ps.main;
+            main.startSizeMultiplier *= deathScale;
+        }
+        Debug.Log($"[{name}] DeathVFX spawn={(vfx != null ? vfx.name : "NULL")} pos={deathPos} hullR={HullRadius():F2} scale={vfx.transform.localScale}", this);
+        Destroy(vfx, 4f);
     }
 
     /// <summary>Hook para que GameManager (Etapa D) cuente bajas sin acoplarse. </summary>
@@ -780,6 +796,23 @@ public abstract class EnemyTemplate : MonoBehaviour, IDamagable
         {
             Gizmos.DrawWireSphere(renderer.bounds.center, radius * 0.05f);
         }
+    }
+
+    private Bounds LiveHullBounds()
+    {
+        Renderer[] renderers = GetComponentsInChildren<Renderer>();
+        if (renderers.Length == 0)
+        {
+            return new Bounds(transform.position, Vector3.one);
+        }
+
+        Bounds bounds = renderers[0].bounds;
+        for (int i = 1; i < renderers.Length; i++)
+        {
+            bounds.Encapsulate(renderers[i].bounds);
+        }
+
+        return bounds;
     }
 
     private Bounds GizmoHullBounds()

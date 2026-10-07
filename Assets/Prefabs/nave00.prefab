@@ -186,6 +186,8 @@ MonoBehaviour:
   contactDamage: 0
   contactRange: 0
   contactCooldown: 1
+  deathVfxPrefab: {fileID: 189680566463950908, guid: c31129ada5164f2895be77d51e4933e0, type: 3}
+  deathVfxScaleMultiplier: 8
   sinkSpeed: 4
   sinkDuration: 1.5
   muzzle: {fileID: 0}
